@@ -1,8 +1,6 @@
 package com.example.beyond.ordersystem.common.config;
 
 import com.example.beyond.ordersystem.common.auth.JwtAuthFilter;
-import lombok.Builder;
-import org.aspectj.weaver.patterns.IToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

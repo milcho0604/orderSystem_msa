@@ -2,19 +2,13 @@ package com.example.beyond.ordersystem.ordering.service;
 
 import com.example.beyond.ordersystem.common.service.StockDecreaseEventHandler;
 import com.example.beyond.ordersystem.common.service.StockInventoryService;
-import com.example.beyond.ordersystem.member.domain.Member;
-import com.example.beyond.ordersystem.member.repository.MemberRepository;
 import com.example.beyond.ordersystem.ordering.controller.SseController;
-import com.example.beyond.ordersystem.ordering.domain.OrderDetail;
 import com.example.beyond.ordersystem.ordering.domain.OrderStatus;
 import com.example.beyond.ordersystem.ordering.domain.Ordering;
 import com.example.beyond.ordersystem.ordering.dto.OrderListResDto;
 import com.example.beyond.ordersystem.ordering.dto.OrderSaveReqDto;
-import com.example.beyond.ordersystem.ordering.event.StockDecreaseEvent;
 import com.example.beyond.ordersystem.ordering.repository.OrderDetailRepository;
 import com.example.beyond.ordersystem.ordering.repository.OrderingRepository;
-import com.example.beyond.ordersystem.product.domain.Product;
-import com.example.beyond.ordersystem.product.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -31,22 +25,18 @@ import java.util.List;
 public class OrderingService {
 
     private final OrderingRepository orderingRepository;
-    private final MemberRepository memberRepository;
-    private final ProductRepository productRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final StockInventoryService stockInventoryService;
-    private final StockDecreaseEventHandler stockDecreaseEventHandler;
     private final SseController sseController;
+    private final StockDecreaseEventHandler stockDecreaseEventHandler;
 
     @Autowired
-    public OrderingService(OrderingRepository orderingRepository, MemberRepository memberRepository, ProductRepository productRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, StockDecreaseEventHandler stockDecreaseEventHandler, SseController sseController) {
+    public OrderingService(OrderingRepository orderingRepository, OrderDetailRepository orderDetailRepository, StockInventoryService stockInventoryService, SseController sseController, StockDecreaseEventHandler stockDecreaseEventHandler) {
         this.orderingRepository = orderingRepository;
-        this.memberRepository = memberRepository;
-        this.productRepository = productRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.stockInventoryService = stockInventoryService;
-        this.stockDecreaseEventHandler = stockDecreaseEventHandler;
         this.sseController = sseController;
+        this.stockDecreaseEventHandler = stockDecreaseEventHandler;
     }
 
     // Synchronized : 설정한다고 하더라도, 재고 감소가 DB에 반영되는 시점은 트랜잭션이 커밋되고 종료되는 시점이다
@@ -55,43 +45,39 @@ public class OrderingService {
 
         // 방법3 : 스프링 시큐리티를 통한 주문 생성(토큰을 통한 사용자 인증), (getName = email)
         String memberEmail = SecurityContextHolder.getContext().getAuthentication().getName(); // 중요 !!
-        Member member = memberRepository.findByEmail(memberEmail)
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 이메일입니다."));
         Ordering ordering = Ordering.builder()
-                .member(member)
+                .memberEmail(memberEmail)
                 .build();
         // OrderDetail생성 : order_id, product_id, quantity
-        for (OrderSaveReqDto dto : dtos) {
-            Product product = productRepository.findById(dto.getProductId())
-                    .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다."));
-            int quantity = dto.getProductCount();
-            if (product.getName().contains("sale")) {
-                // redis를 통한 재고관리 및 재고잔량 확인
-                int newQuantity = stockInventoryService.decreaseStock(dto.getProductId(), dto.getProductCount()).intValue();
-                if(newQuantity<0){
-                    throw new IllegalArgumentException("(redis) 재고가 부족합니다.");
-                }
-                // RDB 재고를 업데이트 : rabbitmq 통해 비동기적으로 이벤트 처리
-                stockDecreaseEventHandler.publish(new StockDecreaseEvent(product.getId(), dto.getProductCount()));
-
-            } else {
-                if (quantity > product.getStock_quantity()) {
-                    throw new IllegalArgumentException("재고가 부족합니다");
-                } else {
-                    // 변경감지로 인해 별도의 save 불필요
-                    product.UpdatStockQuantity(quantity);
-                }
-            }
-
-            OrderDetail orderDetail = OrderDetail.builder()
-                    .product(product)
-                    .quantity(quantity)
-                    .ordering(ordering)
-                    .build();
-                    // orderingRepository.save(ordering);을 하지 않아,
-                    // ordering_id 는 아직 생성되지 않았지만, JPA가 자동으로 순서를 정렬하여 ordering_id 를 삽입한다.build();
-            ordering.getOrderDetails().add(orderDetail);
-        }
+//        for (OrderSaveReqDto dto : dtos) {
+//            int quantity = dto.getProductCount();
+//            // Product API에 요청을 통해 Product 객체를 조히해야한다
+//            if (product.getName().contains("sale")) {
+//                // redis를 통한 재고관리 및 재고잔량 확인
+//                int newQuantity = stockInventoryService.decreaseStock(dto.getProductId(), dto.getProductCount()).intValue();
+//                if(newQuantity<0){
+//                    throw new IllegalArgumentException("(redis) 재고가 부족합니다.");
+//                }
+//                // RDB 재고를 업데이트 : rabbitmq 통해 비동기적으로 이벤트 처리
+//                stockDecreaseEventHandler.publish(new StockDecreaseEvent(product.getId(), dto.getProductCount()));
+//
+//            } else {
+//                if (quantity > product.getStock_quantity()) {
+//                    throw new IllegalArgumentException("재고가 부족합니다");
+//                } else {
+//                    // 변경감지로 인해 별도의 save 불필요
+//                    product.UpdatStockQuantity(quantity);
+//                }
+//            }
+//            OrderDetail orderDetail = OrderDetail.builder()
+//                    .product(product)
+//                    .quantity(quantity)
+//                    .ordering(ordering)
+//                    .build();
+//                    // orderingRepository.save(ordering);을 하지 않아,
+//                    // ordering_id 는 아직 생성되지 않았지만, JPA가 자동으로 순서를 정렬하여 ordering_id 를 삽입한다.build();
+//            ordering.getOrderDetails().add(orderDetail);
+//        }
         Ordering savedOreder = orderingRepository.save(ordering);
 
         // 이메일을 유저이메일
@@ -111,9 +97,8 @@ public class OrderingService {
 
     @Transactional
     public List<OrderListResDto> myOrders() {
-        Member member = memberRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 회원입니다."));
-        List<Ordering> orderings = orderingRepository.findByMember(member);
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<Ordering> orderings = orderingRepository.findByMemberEmail(email);
         List<OrderListResDto> orderListResDtos = new ArrayList<>();
         for (Ordering ordering : orderings) {
             orderListResDtos.add(ordering.fromEntity());

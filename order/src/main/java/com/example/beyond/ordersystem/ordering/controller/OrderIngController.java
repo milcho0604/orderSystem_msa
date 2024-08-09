@@ -5,13 +5,11 @@ import com.example.beyond.ordersystem.ordering.domain.Ordering;
 import com.example.beyond.ordersystem.ordering.dto.OrderListResDto;
 import com.example.beyond.ordersystem.ordering.dto.OrderSaveReqDto;
 import com.example.beyond.ordersystem.ordering.service.OrderingService;
-import org.hibernate.annotations.Fetch;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
