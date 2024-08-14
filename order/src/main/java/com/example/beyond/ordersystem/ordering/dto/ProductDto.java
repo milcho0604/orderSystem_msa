@@ -1,6 +1,5 @@
-package com.example.beyond.ordersystem.product.dto;
+package com.example.beyond.ordersystem.ordering.dto;
 
-import com.example.beyond.ordersystem.product.domain.Product;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,12 +9,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ProductDetailDto {
+public class ProductDto {
+    private Long id;
     private String name;
     private String category;
     private Integer price;
     private Integer stock_quantity;
     private String imagePath;
-
-
 }

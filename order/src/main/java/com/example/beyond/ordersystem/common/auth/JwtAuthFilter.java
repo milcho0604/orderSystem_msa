@@ -31,14 +31,14 @@ public class JwtAuthFilter extends GenericFilter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        String bearerIoken = ((HttpServletRequest) request).getHeader("Authorization");
+        String bearerToken = ((HttpServletRequest) request).getHeader("Authorization");
         try{
-            if(bearerIoken != null){
-                if (!bearerIoken.substring(0, 7).equals("Bearer ")){
+            if(bearerToken != null){
+                if (!bearerToken.substring(0, 7).equals("Bearer ")){
                     // token 관례적으로 Bearer 로 시작하는 문구를 넣어서 요청
                     throw new AuthenticationServiceException("Bearer형식이 아닙니다.");
                 }
-                String token = bearerIoken.substring(7);
+                String token = bearerToken.substring(7);
 
                 // token 검증 및 claims(사용자 정보) 추출
                 // token 생성시에 사용한 secret 키값을 넣어 토큰 검증에 사용
@@ -48,7 +48,7 @@ public class JwtAuthFilter extends GenericFilter {
                 List<GrantedAuthority> authorities = new ArrayList<>();
                 authorities.add(new SimpleGrantedAuthority("ROLE_" + claims.get("role")));
                 UserDetails userDetails = new User(claims.getSubject(), "", authorities); // getSubject() : 사용자 이메일
-                Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails,"",userDetails.getAuthorities()); // 전역적으로 사용하기 위해 authentication 객체 생성
+                Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails,bearerToken,userDetails.getAuthorities()); // 전역적으로 사용하기 위해 authentication 객체 생성
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
             }

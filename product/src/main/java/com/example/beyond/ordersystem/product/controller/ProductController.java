@@ -6,6 +6,7 @@ import com.example.beyond.ordersystem.product.domain.Product;
 import com.example.beyond.ordersystem.product.dto.ProductResDto;
 import com.example.beyond.ordersystem.product.dto.ProductSaveDto;
 import com.example.beyond.ordersystem.product.dto.ProductSearchDto;
+import com.example.beyond.ordersystem.product.dto.ProductUpdateStockDto;
 import com.example.beyond.ordersystem.product.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -46,6 +47,20 @@ public class ProductController {
         Page<ProductResDto> productResDtos = productService.productList(searchDto, pageable);
         CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "물품 목록을 조회합니다.", productResDtos);
         return new ResponseEntity<>(commonResDto, HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> productDetail(@PathVariable Long id){
+        ProductResDto productResDto = productService.productDetail(id);
+        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, productResDto.getName()+" 상품을 조회합니다.", productResDto);
+        return new ResponseEntity<>(commonResDto,HttpStatus.OK);
+    }
+
+    @PutMapping("/update/stock")
+    public ResponseEntity<?> productStockUpdate(@RequestBody ProductUpdateStockDto dto){
+        Product product = productService.productUpdateStock(dto);
+        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, dto.getProductId()+"의 재고가 변경되었습니다.", product.getId());
+        return new ResponseEntity<>(commonResDto,HttpStatus.OK);
     }
 
 // test
